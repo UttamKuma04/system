@@ -15,23 +15,24 @@ st.title("🚆 Auto Login")
 username = st.text_input("Enter IRCTC Username")
 password = st.text_input("Enter IRCTC Password", type="password")
 
-# Keep browser context alive across reruns
-if "page" not in st.session_state:
-    st.session_state.page = None
-if "browser" not in st.session_state:
-    st.session_state.browser = None
-
 
 async def launch_browser():
     async with async_playwright() as p:
+        # ✅ Detect environment (local vs cloud)
+        is_server = not sys.platform.startswith("win")
+
         browser = await p.chromium.launch(
-            headless=True,
+            headless=True,  # Always headless on Streamlit Cloud
             args=[
                 "--disable-blink-features=AutomationControlled",
-                "--start-maximized",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage"
+                "--no-sandbox",              # ✅ Required for cloud
+                "--disable-setuid-sandbox",  # ✅ Required for cloud
+                "--disable-dev-shm-usage",   # ✅ Fix shared memory crash
+                "--disable-gpu",
+                "--single-process",
+                "--disable-extensions",
+                "--disable-infobars",
+                "--start-maximized"
             ]
         )
         context = await browser.new_context(no_viewport=True)
@@ -43,7 +44,8 @@ async def open_login(username, password):
     browser, page = await launch_browser()
 
     st.write("🔹 Opening IRCTC login page...")
-    await page.goto("https://www.irctc.co.in/nget/train-search", timeout=90000, wait_until="domcontentloaded")
+    await page.goto("https://www.irctc.co.in/nget/train-search",
+                    timeout=90000, wait_until="domcontentloaded")
 
     # Close popup if exists
     ads = await page.query_selector("//button[@class='btn btn-primary']")
@@ -68,40 +70,22 @@ async def open_login(username, password):
 
         with BytesIO(img_data) as buffer:
             img = Image.open(buffer).convert("RGB")
+            st.image(img, caption="🔐 Captcha")
+        
+        captcha_input = st.text_input("Enter captcha")
 
-        # Show captcha image in Streamlit
-        st.image(img, caption="🔒 Captcha", use_container_width=False)
-
-    # Save page/browser in session state for next step
-    st.session_state.page = page
-    st.session_state.browser = browser
-
-
-async def submit_captcha(captcha_input):
-    page = st.session_state.page
-    browser = st.session_state.browser
-
-    if not page or not browser:
-        st.error("❌ Please start login first!")
-        return
-
-    await page.fill("input[placeholder='Enter Captcha']", captcha_input)
-    st.write(f"🧩 Captcha entered: `{captcha_input}`")
+        if captcha_input:
+            await page.fill("input[placeholder='Enter Captcha']", captcha_input)
+            st.write(f"🧩 Captcha entered: `{captcha_input}`")
 
     # Submit login
     await page.click("xpath=//button[@class ='search_btn train_Search train_Search_custom_hover']")
-    st.success("✅ Login successful!")
+
+    st.success("✅ Login attempted!")
 
     await asyncio.sleep(10)
     await browser.close()
-    st.session_state.page = None
-    st.session_state.browser = None
 
 
-# --- Streamlit buttons ---
-if st.button("🔐 Start Login"):
+if st.button("Login to IRCTC"):
     asyncio.run(open_login(username, password))
-
-captcha_input = st.text_input("Enter Captcha")
-if st.button("🚀 Submit Captcha"):
-    asyncio.run(submit_captcha(captcha_input))
