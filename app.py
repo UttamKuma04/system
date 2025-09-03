@@ -1,15 +1,15 @@
 import asyncio
 import sys
+import os
 from playwright.async_api import async_playwright
 import streamlit as st
-import re
 
 
 # ✅ Fix for Windows async subprocess
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-st.title("🚆Auto Login")
+st.title("🚆 Auto Login")
 
 username = st.text_input("Enter IRCTC Username")
 password = st.text_input("Enter IRCTC Password", type="password")
@@ -17,11 +17,17 @@ password = st.text_input("Enter IRCTC Password", type="password")
 
 async def main(username, password):
     async with async_playwright() as p:
+        # Detect if running in server/Streamlit Cloud (no GUI available)
+        is_server = os.environ.get("STREAMLIT_RUNTIME", None) is not None
+
         browser = await p.chromium.launch(
-            headless=False,
+            headless=is_server,   # ✅ False locally, True on cloud
             args=[
                 "--disable-blink-features=AutomationControlled",
-                "--start-maximized"
+                "--start-maximized",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage"
             ]
         )
 
@@ -43,27 +49,6 @@ async def main(username, password):
         # Fill credentials
         await page.fill("input[placeholder='User Name']", username)
         await page.fill("input[placeholder='Password']", password)
-
-        # Handle captcha
-        # captcha_element = await page.wait_for_selector("//img[@class='captcha-img']")
-        # base64_string = await captcha_element.get_attribute("src")
-
-        # if base64_string:
-        #     base64_string = base64_string.split(",")[1]
-        #     img_data = base64.b64decode(base64_string)
-
-        #     with BytesIO(img_data) as buffer:
-        #         img = Image.open(buffer).convert("RGB")
-        #         img.save("captcha.jpg")
-
-        #     raw_text = tess.image_to_string(Image.open("captcha.jpg"))
-        #     captcha_input = re.sub(r"[^A-Za-z0-9]", "", raw_text).strip()
-
-        #     await page.fill("input[placeholder='Enter Captcha']", captcha_input)
-        #     st.write(f"🧩 Captcha entered: `{captcha_input}`")
-
-        # # Submit login
-        # await page.click("xpath=//button[@class ='search_btn train_Search train_Search_custom_hover']")
 
         st.success("✅ Login successful!")
         await asyncio.sleep(10)
