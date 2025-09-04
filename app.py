@@ -9,7 +9,7 @@ if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 st.set_page_config(page_title="IRCTC Auto Login", page_icon="🚆")
-st.title("🚆 IRCTC Auto Login")
+st.title("🚆  Auto Login")
 
 username = st.text_input("Enter IRCTC Username")
 password = st.text_input("Enter IRCTC Password", type="password")
