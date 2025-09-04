@@ -6,7 +6,6 @@ from io import BytesIO
 from playwright.async_api import async_playwright
 import streamlit as st
 
-# ✅ Fix for Windows async subprocess
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
@@ -83,7 +82,15 @@ async def open_login(username, password):
     await browser.close()
 
 
-# ✅ Safe Streamlit async handling
+# ✅ Safe Streamlit async runner
+def run_async_task(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:  # no running loop
+        return asyncio.run(coro)
+    else:
+        return loop.create_task(coro)
+
+
 if st.button("Login to IRCTC"):
-    loop = asyncio.get_event_loop()
-    loop.create_task(open_login(username, password))
+    run_async_task(open_login(username, password))
