@@ -15,7 +15,7 @@ url = st.text_input("Enter a URL", "https://example.com")
 async def get_title(target_url: str):
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=True,
+            headless=False,
             args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
         page = await browser.new_page()
