@@ -17,10 +17,8 @@ password = st.text_input("Enter IRCTC Password", type="password")
 
 async def main(username: str, password: str):
     async with async_playwright() as p:
-        # Detect if running in Render/Docker
+        # Detect if running in Docker/Render
         is_docker = os.environ.get("RENDER") or os.environ.get("CI")
-
-        # ✅ If in Docker/Render → force headless (Xvfb will handle display)
         headless_mode = True if is_docker else False
 
         # ✅ Launch Chromium
@@ -56,18 +54,26 @@ async def main(username: str, password: str):
             await browser.close()
             return
 
+        # 📸 Show screenshot after landing
+        screenshot = await page.screenshot(full_page=True)
+        st.image(screenshot, caption="IRCTC Home Page", use_container_width=True)
+
         # Close popup if exists
         try:
             ads = await page.query_selector("//button[@class='btn btn-primary']")
             if ads:
                 await ads.click()
                 st.write("✅ Closed popup")
+                screenshot = await page.screenshot(full_page=True)
+                st.image(screenshot, caption="Popup Closed", use_container_width=True)
         except Exception:
             st.write("ℹ️ No popup found")
 
         # Click login button
         try:
             await page.click("xpath=//*[@class='search_btn loginText ng-star-inserted']")
+            screenshot = await page.screenshot(full_page=True)
+            st.image(screenshot, caption="Login Page", use_container_width=True)
         except Exception as e:
             st.error(f"❌ Could not click login button: {e}")
             await browser.close()
@@ -79,11 +85,13 @@ async def main(username: str, password: str):
             await page.fill("input[placeholder='Password']", password)
             st.success("✅ Credentials entered successfully!")
             st.info("⚠️ Please enter captcha manually if required...")
+
+            screenshot = await page.screenshot(full_page=True)
+            st.image(screenshot, caption="Credentials Filled", use_container_width=True)
         except Exception as e:
             st.error(f"❌ Error filling credentials: {e}")
 
-        # Give some time before closing
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
         await browser.close()
 
 

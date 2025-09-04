@@ -2,13 +2,12 @@ FROM python:3.11-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install system deps for Chromium + Xvfb
+# Install system deps for Chromium + Xvfb + xauth
 RUN apt-get update -q && \
     apt-get install -y -qq --no-install-recommends \
         wget \
         curl \
         unzip \
-        xvfb \
         fonts-liberation \
         libasound2 \
         libatk1.0-0 \
@@ -27,6 +26,8 @@ RUN apt-get update -q && \
         libxkbcommon0 \
         libxrandr2 \
         xdg-utils \
+        xvfb \
+        xauth \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
@@ -43,5 +44,5 @@ COPY app.py .
 # Expose port for Render
 EXPOSE 10000
 
-# Run Streamlit with Xvfb
-CMD xvfb-run -a streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
+# Run Streamlit under xvfb-run (virtual display)
+CMD xvfb-run -s "-screen 0 1280x900x24" streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
