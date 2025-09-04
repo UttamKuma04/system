@@ -4,7 +4,6 @@ import os
 from playwright.async_api import async_playwright
 import streamlit as st
 
-
 # ✅ Fix for Windows async subprocess handling
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -18,11 +17,12 @@ password = st.text_input("Enter IRCTC Password", type="password")
 
 async def main(username: str, password: str):
     async with async_playwright() as p:
-        # Detect environment (Render/Cloud vs Local)
+        # Detect if running in Render/Docker
         is_docker = os.environ.get("RENDER", None) is not None or os.environ.get("CI", None) is not None
 
+        # ✅ Launch Chromium with safe flags
         browser = await p.chromium.launch(
-            headless=True if is_docker else True,  # Always headless in Docker/Render
+            headless=False,  # Always headless on server
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
@@ -31,6 +31,10 @@ async def main(username: str, password: str):
                 "--disable-extensions",
                 "--disable-gpu",
                 "--disable-software-rasterizer",
+                "--disable-http2",  # ✅ Fix IRCTC HTTP2 issue
+                "--ignore-certificate-errors",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--enable-features=NetworkService,NetworkServiceInProcess",
             ],
         )
 
@@ -38,33 +42,49 @@ async def main(username: str, password: str):
         page = await context.new_page()
 
         st.write("🔹 Opening IRCTC login page...")
-        await page.goto(
-            "https://www.irctc.co.in/nget/train-search",
-            timeout=90000,
-            wait_until="domcontentloaded",
-        )
+        try:
+            await page.goto(
+                "https://www.irctc.co.in/nget/train-search",
+                timeout=120000,
+                wait_until="networkidle",  # ✅ wait for network settle
+            )
+        except Exception as e:
+            st.error(f"❌ Failed to load IRCTC: {e}")
+            await browser.close()
+            return
 
-        # Close popup if it exists
-        ads = await page.query_selector("//button[@class='btn btn-primary']")
-        if ads:
-            await ads.click()
-            st.write("✅ Closed popup")
+        # Close popup if exists
+        try:
+            ads = await page.query_selector("//button[@class='btn btn-primary']")
+            if ads:
+                await ads.click()
+                st.write("✅ Closed popup")
+        except Exception:
+            st.write("ℹ️ No popup found")
 
         # Click login button
-        await page.click("xpath=//*[@class='search_btn loginText ng-star-inserted']")
+        try:
+            await page.click("xpath=//*[@class='search_btn loginText ng-star-inserted']")
+        except Exception as e:
+            st.error(f"❌ Could not click login button: {e}")
+            await browser.close()
+            return
 
         # Fill credentials
-        await page.fill("input[placeholder='User Name']", username)
-        await page.fill("input[placeholder='Password']", password)
-
-        st.success("✅ Credentials entered successfully!")
-        st.info("⚠️ Please enter captcha manually if required...")
+        try:
+            await page.fill("input[placeholder='User Name']", username)
+            await page.fill("input[placeholder='Password']", password)
+            st.success("✅ Credentials entered successfully!")
+            st.info("⚠️ Please enter captcha manually if required...")
+        except Exception as e:
+            st.error(f"❌ Error filling credentials: {e}")
 
         # Give some time before closing
         await asyncio.sleep(10)
         await browser.close()
 
 
+# Button handler
 if st.button("Login to IRCTC"):
     if not username or not password:
         st.error("❌ Please enter both username and password")
