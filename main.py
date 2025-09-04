@@ -18,22 +18,19 @@ password = st.text_input("Enter IRCTC Password", type="password")
 
 async def launch_browser():
     async with async_playwright() as p:
-        # ✅ Detect environment (local vs cloud)
-        is_server = not sys.platform.startswith("win")
-
         browser = await p.chromium.launch(
-            headless=True,  # Always headless on Streamlit Cloud
+            headless=True,
             args=[
                 "--disable-blink-features=AutomationControlled",
-                "--no-sandbox",              # ✅ Required for cloud
-                "--disable-setuid-sandbox",  # ✅ Required for cloud
-                "--disable-dev-shm-usage",   # ✅ Fix shared memory crash
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
                 "--disable-gpu",
                 "--single-process",
                 "--disable-extensions",
                 "--disable-infobars",
-                "--start-maximized"
-            ]
+                "--start-maximized",
+            ],
         )
         context = await browser.new_context(no_viewport=True)
         page = await context.new_page()
@@ -80,12 +77,13 @@ async def open_login(username, password):
 
     # Submit login
     await page.click("xpath=//button[@class ='search_btn train_Search train_Search_custom_hover']")
-
     st.success("✅ Login attempted!")
 
     await asyncio.sleep(10)
     await browser.close()
 
 
+# ✅ Safe Streamlit async handling
 if st.button("Login to IRCTC"):
-    asyncio.run(open_login(username, password))
+    loop = asyncio.get_event_loop()
+    loop.create_task(open_login(username, password))
