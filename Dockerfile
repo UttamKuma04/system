@@ -1,30 +1,24 @@
-FROM python:3.11
+FROM python:3.11-slim
 
-ARG DEBIAN_FRONTEND=noninteractive
+# Install system deps
+RUN apt-get update && apt-get install -y \
+    wget gnupg ca-certificates curl unzip fonts-liberation libasound2 libatk1.0-0 \
+    libatk-bridge2.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 libglib2.0-0 libgtk-3-0 \
+    libnspr4 libnss3 libx11-6 libx11-xcb1 libxcomposite1 libxdamage1 libxext6 \
+    libxfixes3 libxrandr2 libxshmfence1 libxss1 libxtst6 xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update -q && \
-    apt-get install -y -qq --no-install-recommends \
-        xvfb \
-        libxcomposite1 \
-        libxdamage1 \
-        libatk1.0-0 \
-        libasound2 \
-        libdbus-1-3 \
-        libnspr4 \
-        libgbm1 \
-        libatk-bridge2.0-0 \
-        libcups2 \
-        libxkbcommon0 \
-        libatspi2.0-0 \
-        libnss3
+WORKDIR /app
 
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip3 install -r requirements.txt && \
-    playwright install chromium
+# Install Playwright + Chromium
+RUN playwright install --with-deps chromium
 
-COPY script.py .
+COPY . .
 
-ENV DISPLAY=:99
+EXPOSE 10000
 
-CMD Xvfb :99 -screen 0 1024x768x16 & python3 script.py
+# Run Streamlit
+CMD ["streamlit", "run", "app.py", "--server.port=10000", "--server.address=0.0.0.0"]
