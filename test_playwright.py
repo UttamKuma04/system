@@ -15,11 +15,19 @@ url = st.text_input("Enter a URL", "https://example.com")
 async def get_title(target_url: str):
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=False,
-            args=["--no-sandbox", "--disable-dev-shm-usage"]
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-http2",                  # ✅ Fix ERR_HTTP2_PROTOCOL_ERROR
+                "--ignore-certificate-errors",
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--enable-features=NetworkService,NetworkServiceInProcess"
+            ]
         )
         page = await browser.new_page()
-        await page.goto(target_url, timeout=60000)
+        await page.goto(target_url, timeout=120000, wait_until="domcontentloaded")
         title = await page.title()
         await browser.close()
         return title
@@ -27,7 +35,6 @@ async def get_title(target_url: str):
 if st.button("Fetch Title"):
     if url:
         try:
-            # ✅ Works for both Windows + Linux
             title = asyncio.run(get_title(url))
             st.success(f"✅ Page title: {title}")
         except Exception as e:

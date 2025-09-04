@@ -21,18 +21,8 @@ RUN playwright install --with-deps chromium
 # Copy all files
 COPY . .
 
-# Streamlit config (safety)
-RUN mkdir -p .streamlit && echo "\
-[server]\n\
-headless = true\n\
-port = \$PORT\n\
-address = \"0.0.0.0\"\n\
-enableCORS = false\n\
-enableXsrfProtection = false\n\
-" > .streamlit/config.toml
-
-# Expose port (optional for docs, Render uses $PORT anyway)
+# Expose default port (Render overrides with $PORT)
 EXPOSE 10000
 
-# ✅ Use bash -c so $PORT expands correctly at runtime
-CMD bash -c "xvfb-run -a streamlit run test_playwright.py --server.port=\$PORT --server.address=0.0.0.0"
+# ✅ Start Streamlit and bind to Render’s port
+CMD bash -c "xvfb-run -a streamlit run test_playwright.py --server.port=\$PORT --server.address=0.0.0.0 --server.enableCORS=false --server.enableXsrfProtection=false"
