@@ -1,96 +1,97 @@
 import asyncio
-import sys
 import base64
-from PIL import Image
 from io import BytesIO
+from PIL import Image
 from playwright.async_api import async_playwright
 import streamlit as st
 
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-st.title("🚆 Auto Login")
-
-username = st.text_input("Enter IRCTC Username")
-password = st.text_input("Enter IRCTC Password", type="password")
-
-
+# Launch browser safely
 async def launch_browser():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--single-process",
-                "--disable-extensions",
-                "--disable-infobars",
-                "--start-maximized",
-            ],
+    playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(
+        headless=False,  # set True if running on server
+        args=["--no-sandbox", "--disable-setuid-sandbox",  "--start-maximized",]
+    )
+    context = await browser.new_context()
+    page = await context.new_page()
+    return playwright, browser, page
+
+
+async def open_login(username, password, captcha_input=None):
+    playwright, browser, page = await launch_browser()
+
+    try:
+        st.write("🔹 Opening IRCTC login page...")
+        await page.goto(
+            "https://www.irctc.co.in/nget/train-search",
+            timeout=90000,
+            wait_until="domcontentloaded"
         )
-        context = await browser.new_context(no_viewport=True)
-        page = await context.new_page()
-        return browser, page
 
+        # Close popup if exists
+        ads = await page.query_selector("//button[@class='btn btn-primary']")
+        if ads:
+            await ads.click()
+            st.write("✅ Closed popup")
 
-async def open_login(username, password):
-    browser, page = await launch_browser()
+        # Click login
+        await page.click("xpath=//*[@class='search_btn loginText ng-star-inserted']")
 
-    st.write("🔹 Opening IRCTC login page...")
-    await page.goto("https://www.irctc.co.in/nget/train-search",
-                    timeout=90000, wait_until="domcontentloaded")
+        # Fill credentials
+        await page.fill("input[placeholder='User Name']", username)
+        await page.fill("input[placeholder='Password']", password)
 
-    # Close popup if exists
-    ads = await page.query_selector("//button[@class='btn btn-primary']")
-    if ads:
-        await ads.click()
-        st.write("✅ Closed popup")
+        # Handle captcha
+        captcha_element = await page.wait_for_selector("//img[@class='captcha-img']")
+        base64_string = await captcha_element.get_attribute("src")
 
-    # Click login
-    await page.click("xpath=//*[@class='search_btn loginText ng-star-inserted']")
+        if base64_string:
+            base64_string = base64_string.split(",")[1]
+            img_data = base64.b64decode(base64_string)
 
-    # Fill credentials
-    await page.fill("input[placeholder='User Name']", username)
-    await page.fill("input[placeholder='Password']", password)
+            with BytesIO(img_data) as buffer:
+                img = Image.open(buffer).convert("RGB")
+                st.image(img, caption="🔐 Captcha")
 
-    # Handle captcha
-    captcha_element = await page.wait_for_selector("//img[@class='captcha-img']")
-    base64_string = await captcha_element.get_attribute("src")
+            # Wait for user input
+            if not captcha_input:
+                st.warning("⚠️ Please enter captcha above and click 'Submit Login'")
+                return  # stop here, keep browser open
 
-    if base64_string:
-        base64_string = base64_string.split(",")[1]
-        img_data = base64.b64decode(base64_string)
-
-        with BytesIO(img_data) as buffer:
-            img = Image.open(buffer).convert("RGB")
-            st.image(img, caption="🔐 Captcha")
-        
-        captcha_input = st.text_input("Enter captcha")
-
-        if captcha_input:
+            # Fill captcha
             await page.fill("input[placeholder='Enter Captcha']", captcha_input)
             st.write(f"🧩 Captcha entered: `{captcha_input}`")
 
-    # Submit login
-    await page.click("xpath=//button[@class ='search_btn train_Search train_Search_custom_hover']")
-    st.success("✅ Login attempted!")
+            # Submit login
+            await page.click(
+                "xpath=//button[@class ='search_btn train_Search train_Search_custom_hover']"
+            )
+            st.success("✅ Login attempted!")
 
-    await asyncio.sleep(10)
-    await browser.close()
+            try:
+                await page.wait_for_selector("xpath=//a[contains(text(),'Logout')]", timeout=15000)
+                st.success("🎉 Logged in successfully!")
+            except:
+                st.warning("⚠️ Login may have failed. Please check credentials/captcha.")
+
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
+
+    finally:
+        await browser.close()
+        await playwright.stop()
 
 
-# ✅ Safe Streamlit async runner
-def run_async_task(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:  # no running loop
-        return asyncio.run(coro)
+# -------- Streamlit UI --------
+st.title("🚆 IRCTC Auto Login")
+
+username = st.text_input("IRCTC Username")
+password = st.text_input("IRCTC Password", type="password")
+captcha_input = st.text_input("Enter Captcha (after image shown)")
+
+if st.button("Start Login"):
+    if username and password:
+        asyncio.run(open_login(username, password, captcha_input))
     else:
-        return loop.create_task(coro)
-
-
-if st.button("Login to IRCTC"):
-    run_async_task(open_login(username, password))
+        st.warning("⚠️ Please enter both username and password")

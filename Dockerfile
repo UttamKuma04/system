@@ -1,32 +1,46 @@
-# Use official Python image
-FROM python:3.13-slim
+FROM python:3.11-slim
 
-# Install system dependencies required by Playwright
-RUN apt-get update && apt-get install -y \
-    libgtk-4-1 \
-    libgraphene-1.0-0 \
-    gstreamer1.0-gl \
-    gstreamer1.0-plugins-bad \
-    libenchant-2-2 \
-    libsecret-1-0 \
-    libmanette-0.2-0 \
-    libgles2 \
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install system deps for Chromium
+RUN apt-get update -q && \
+    apt-get install -y -qq --no-install-recommends \
+        wget \
+        curl \
+        unzip \
+        fonts-liberation \
+        libasound2 \
+        libatk1.0-0 \
+        libatk-bridge2.0-0 \
+        libcups2 \
+        libdbus-1-3 \
+        libdrm2 \
+        libgbm1 \
+        libgtk-3-0 \
+        libnss3 \
+        libnspr4 \
+        libx11-xcb1 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxfixes3 \
+        libxkbcommon0 \
+        libxrandr2 \
+        xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /app
+# Copy requirements
+COPY requirements.txt .
 
-# Copy project files
-COPY . .
+# Install Python deps + Playwright Chromium
+RUN pip3 install --no-cache-dir -r requirements.txt && \
+    pip3 install playwright && \
+    playwright install --with-deps chromium
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy app
+COPY app.py .
 
-# Install Playwright browsers
-RUN playwright install
+# Expose port for Render
+EXPOSE 10000
 
-# Expose port for Streamlit
-EXPOSE 8501
-
-# Command to run Streamlit
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Run Streamlit on Render's $PORT
+CMD streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
