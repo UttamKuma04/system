@@ -17,13 +17,9 @@ password = st.text_input("Enter IRCTC Password", type="password")
 
 async def main(username: str, password: str):
     async with async_playwright() as p:
-        # Detect if running in Docker/Render
-        is_docker = os.environ.get("RENDER") or os.environ.get("CI")
-        headless_mode = True if is_docker else False
-
-        # ✅ Launch Chromium
+        # ✅ Always headless on Render
         browser = await p.chromium.launch(
-            headless=headless_mode,
+            headless=True,
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
@@ -47,14 +43,13 @@ async def main(username: str, password: str):
             await page.goto(
                 "https://www.irctc.co.in/nget/train-search",
                 timeout=120000,
-                wait_until="domcontentloaded",  # safer than networkidle
+                wait_until="domcontentloaded",
             )
         except Exception as e:
             st.error(f"❌ Failed to load IRCTC: {e}")
             await browser.close()
             return
 
-        # 📸 Show screenshot after landing
         screenshot = await page.screenshot(full_page=True)
         st.image(screenshot, caption="IRCTC Home Page", use_container_width=True)
 

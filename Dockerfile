@@ -2,14 +2,12 @@ FROM python:3.11-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install system deps for Chromium + xvfb
+# Install system deps for Chromium
 RUN apt-get update -q && \
     apt-get install -y -qq --no-install-recommends \
         wget \
         curl \
         unzip \
-        xauth \
-        xvfb \
         fonts-liberation \
         libasound2 \
         libatk1.0-0 \
@@ -41,11 +39,8 @@ RUN pip3 install --no-cache-dir -r requirements.txt && \
 # Copy app
 COPY app.py .
 
-# Prevent Streamlit from asking for email
-ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
-
-# Expose Render port
+# Expose port for Render
 EXPOSE 10000
 
-# Run Streamlit on Render's $PORT
-CMD xvfb-run -s "-screen 0 1280x900x24" streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
+# Run Streamlit
+CMD streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
