@@ -21,8 +21,18 @@ RUN playwright install --with-deps chromium
 # Copy all files
 COPY . .
 
-# Expose port for Render
+# Streamlit config (safety)
+RUN mkdir -p .streamlit && echo "\
+[server]\n\
+headless = true\n\
+port = \$PORT\n\
+address = \"0.0.0.0\"\n\
+enableCORS = false\n\
+enableXsrfProtection = false\n\
+" > .streamlit/config.toml
+
+# Expose port (optional for docs, Render uses $PORT anyway)
 EXPOSE 10000
 
-# Run Streamlit inside Xvfb (for headed mode support)
-CMD ["xvfb-run", "-a", "streamlit", "run", "test_playwright.py", "--server.port=10000", "--server.address=0.0.0.0"]
+# ✅ Use bash -c so $PORT expands correctly at runtime
+CMD bash -c "xvfb-run -a streamlit run test_playwright.py --server.port=\$PORT --server.address=0.0.0.0"
