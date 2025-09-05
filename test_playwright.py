@@ -3,7 +3,6 @@ import asyncio
 from playwright.async_api import async_playwright
 import streamlit as st
 
-# ✅ Fix for Windows event loop
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
@@ -16,18 +15,10 @@ async def get_title(target_url: str):
     async with async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-http2",                  # ✅ Fix ERR_HTTP2_PROTOCOL_ERROR
-                "--ignore-certificate-errors",
-                "--disable-blink-features=AutomationControlled",
-                "--disable-features=IsolateOrigins,site-per-process",
-                "--enable-features=NetworkService,NetworkServiceInProcess"
-            ]
+            args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
         page = await browser.new_page()
-        await page.goto(target_url, timeout=120000, wait_until="domcontentloaded")
+        await page.goto(target_url, timeout=60000)
         title = await page.title()
         await browser.close()
         return title
@@ -35,6 +26,7 @@ async def get_title(target_url: str):
 if st.button("Fetch Title"):
     if url:
         try:
+            # ✅ Works for both Windows + Linux
             title = asyncio.run(get_title(url))
             st.success(f"✅ Page title: {title}")
         except Exception as e:
