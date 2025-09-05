@@ -1,19 +1,10 @@
 services:
   - type: web
-    name: playwright-streamlit-app
-    env: python
-    buildCommand: |
-      apt-get update && apt-get install -y \
-        libgtk-4-1 \
-        libgraphene-1.0-0 \
-        gstreamer1.0-gl \
-        gstreamer1.0-plugins-bad \
-        libenchant-2-2 \
-        libsecret-1-0 \
-        libmanette-0.2-0 \
-        libgles2 \
-        && rm -rf /var/lib/apt/lists/*
-
-      pip install -r requirements.txt && playwright install
-
-    startCommand: "streamlit run app.py --server.port=$PORT --server.address=0.0.0.0"
+    name: playwright-debug
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 9222

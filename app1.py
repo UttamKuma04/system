@@ -1,12 +1,14 @@
+import os, time
 from playwright.sync_api import sync_playwright
-import time
+
+PORT = os.getenv("PORT", "9222")
 
 with sync_playwright() as p:
     browser = p.chromium.launch(
-        headless=False,  # 👈 headed mode works now
+        headless=False,
         args=[
             "--remote-debugging-address=0.0.0.0",
-            "--remote-debugging-port=9222",
+            f"--remote-debugging-port={PORT}",
             "--disable-dev-shm-usage",
             "--no-sandbox"
         ]
