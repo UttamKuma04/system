@@ -99,3 +99,23 @@ if st.button("Login to IRCTC"):
             asyncio.run(main(username, password))
         except Exception as e:
             st.error(f"❌ Error: {e}")
+
+
+
+
+class Main:
+    def def1(self):
+        print("Running def1")
+    
+    def def2(self):
+        print("Running def2")
+    
+    def def3(self):
+        print("Running def3")
+
+
+def main():
+    bot = Main()       
+    bot.def1
+    bot.def2
+    bot.f 

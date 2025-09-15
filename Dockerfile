@@ -1,28 +1,42 @@
+# Stage 1: Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
-# Install system dependencies for Chromium
-RUN apt-get update && apt-get install -y \
-    wget gnupg ca-certificates curl unzip fonts-liberation libasound2 \
-    libatk1.0-0 libatk-bridge2.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 \
-    libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libx11-6 libx11-xcb1 \
-    libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 \
-    libxshmfence1 libxss1 libxtst6 xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
-
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy requirements and install
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    --no-install-recommends \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list \
+    && apt-get update && apt-get install -y \
+    google-chrome-stable \
+    chromium-driver \
+    libglib2.0-0 \
+    libnss3 \
+    libfontconfig1 \
+    --no-install-recommends \
+    # Clean up APT cache to reduce image size
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the requirements file into the container
 COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright Chromium
-RUN playwright install --with-deps chromium
+# Copy your Streamlit application script into the container
+COPY new.py .
 
-# Copy all files
-COPY . .
+# Expose the default Streamlit port
+EXPOSE 8501
 
-# Expose Render port
-EXPOSE 10000
+# Add a healthcheck to verify the Streamlit app is running
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
-# Start Streamlit app (your test_playwright.py file)
-CMD ["streamlit", "run", "test_playwright.py", "--server.port=10000", "--server.address=0.0.0.0"]
+# Command to run the Streamlit app when the container starts
+CMD ["streamlit", "run", "new.py", "--server.port=8501", "--server.address=0.0.0.0"]
