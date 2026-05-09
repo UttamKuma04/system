@@ -1,130 +1,164 @@
-# System – Python Automation & Testing Repository
+# System
 
-A collection of **Python scripts** focused on automation, testing, and experimentation. This repository includes standalone scripts, Playwright-based browser automation tests, and a Docker setup for consistent execution.
+Python browser automation experiments built with Streamlit, Selenium, and Playwright.
 
----
+This repository contains small automation scripts for opening web pages, taking screenshots, fetching page titles, and testing IRCTC login-page automation flows. The Docker setup is focused on the Selenium Streamlit screenshot app in `new.py`.
 
-## 📁 Project Structure
+## Project Structure
 
-```
+```text
 system/
-│
-├── Dockerfile           # Docker configuration for containerized execution
-├── app.py               # Main application / automation entry script
-├── demo.py              # Demo or experimental Python script
-├── new.py               # Additional utility or experiment script
-├── test.py              # Basic Python testing script
-├── test_playwright.py   # Browser automation using Playwright
-├── requirements.txt     # Python dependencies
-└── README.md            # Project documentation
+|-- app.py               # Streamlit IRCTC auto-login helper using Playwright
+|-- demo.py              # Playwright demo that opens example.com and saves a screenshot
+|-- new.py               # Streamlit Selenium app that captures and downloads screenshots
+|-- test.py              # Synchronous Playwright script for IRCTC page title and screenshot
+|-- test_playwright.py   # Streamlit Playwright app that fetches a URL title
+|-- requirements.txt     # Python dependencies currently used by the Selenium app
+|-- Dockerfile           # Container image for running new.py with Streamlit
+`-- README.md            # Project documentation
 ```
 
----
+## What It Does
 
-## 🚀 Features
+### `app.py`
 
-* Python-based automation scripts
-* Browser automation using **Playwright**
-* Modular and experiment-friendly structure
-* Docker support for reproducible environments
-* Easy dependency management
+Runs a Streamlit interface for IRCTC login automation. It asks for an IRCTC username and password, opens the IRCTC train-search page with Playwright, closes the popup when present, opens the login dialog, fills the credentials, and shows screenshots of each major step.
 
----
+Captcha handling is not automated. The app displays a message asking the user to complete captcha manually when required.
 
-## 🛠️ Tech Stack
+### `new.py`
 
-* **Language:** Python
-* **Automation:** Playwright
-* **Containerization:** Docker
-* **Testing:** Python scripts
+Runs a Streamlit app backed by Selenium. The user enters a URL, the app launches headless Chrome, loads the page, displays the page title, saves a screenshot as `screenshot.png`, displays it in the UI, and provides a download button.
 
----
+The Dockerfile is configured to run this file.
 
-## ⚙️ Installation & Setup
+### `test_playwright.py`
 
-### 1️⃣ Clone the repository
+Runs a Streamlit page-title fetcher using Playwright. The user enters a URL, the script opens it in Chromium, saves a screenshot, reads the page title, and shows the title in Streamlit.
 
-```bash
-git clone https://github.com/UttamKuma04/system.git
-cd system
-```
+### `test.py`
 
-### 2️⃣ Create & activate virtual environment (recommended)
+Runs a simple synchronous Playwright script against the IRCTC train-search page. It opens Chromium, prints the page title, saves `screenshot.png`, waits briefly, and closes the browser.
+
+### `demo.py`
+
+Runs a Playwright demo against `https://example.com`, saves a screenshot, and closes the browser. On Linux, it uses `pyvirtualdisplay` to provide a virtual display for non-headless browser execution.
+
+## Tech Stack
+
+- Python
+- Streamlit
+- Selenium
+- Playwright
+- Chrome or Chromium
+- Docker
+
+## Setup
+
+Create and activate a virtual environment:
 
 ```bash
 python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
 ```
 
-### 3️⃣ Install dependencies
+Windows PowerShell:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+macOS or Linux:
+
+```bash
+source venv/bin/activate
+```
+
+Install the dependencies listed in the project:
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## ▶️ Running Scripts
-
-Run any script directly:
+For scripts that use Playwright, install Playwright and its Chromium browser:
 
 ```bash
-python app.py
-python demo.py
+pip install playwright
+python -m playwright install chromium
+```
+
+For `demo.py` on Linux, install the optional virtual display dependency:
+
+```bash
+pip install pyvirtualdisplay
+```
+
+## Running the Apps
+
+Run the Selenium screenshot Streamlit app:
+
+```bash
+streamlit run new.py
+```
+
+Run the IRCTC Playwright Streamlit app:
+
+```bash
+streamlit run app.py
+```
+
+Run the Playwright page-title Streamlit app:
+
+```bash
+streamlit run test_playwright.py
+```
+
+Run the standalone Playwright scripts:
+
+```bash
 python test.py
+python demo.py
 ```
 
-Run Playwright test:
+## Docker Usage
+
+Build the Docker image:
 
 ```bash
-python test_playwright.py
+docker build -t system-streamlit .
 ```
 
-(Ensure Playwright browsers are installed if required)
-
----
-
-## 🐳 Docker Usage
-
-Build Docker image:
+Run the container:
 
 ```bash
-docker build -t python-system .
+docker run -p 8501:8501 system-streamlit
 ```
 
-Run container:
+Open the Streamlit app at:
 
-```bash
-docker run python-system
+```text
+http://localhost:8501
 ```
 
----
+The container runs `new.py` by default.
 
-## 🧪 Use Cases
+## Runtime Notes
 
-* Automation testing practice
-* Browser automation experiments
-* Python scripting & utilities
-* Dockerized Python environments
+- `app.py` and `test_playwright.py` require Playwright, which is not listed in the current `requirements.txt`.
+- `new.py` requires Chrome or Chromium support for Selenium. The Dockerfile installs Google Chrome and Chromium Driver.
+- Several scripts write `screenshot.png` in the project directory.
+- Some scripts launch browsers with `headless=False`, so they require a desktop session or virtual display.
+- IRCTC pages can change selectors or block automation, so those scripts may need selector updates over time.
 
----
+## Security Notes
 
-## 📌 Future Enhancements
+- Do not commit real IRCTC credentials or other secrets.
+- The Streamlit apps accept credentials or URLs from the user at runtime.
+- Captcha solving is intentionally left to the user.
 
-* Structured test framework (pytest)
-* Logging & reporting
-* CI/CD integration
-* More Playwright test cases
+## Suggested Improvements
 
----
-
-## 👤 Author
-
-**Uttam Kumar**
-GitHub: [@UttamKuma04](https://github.com/UttamKuma04)
-
----
-
-## 📄 License
-
-This project is open-source and available under the **MIT Lic
+- Move Playwright dependencies into `requirements.txt` if all scripts should run from one install command.
+- Split standalone scripts and Streamlit apps into separate directories.
+- Add automated tests for helper logic.
+- Avoid writing every screenshot to the same `screenshot.png` path when running multiple scripts.
+- Add environment-specific configuration for browser headless mode.

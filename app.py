@@ -4,12 +4,12 @@ import os
 from playwright.async_api import async_playwright
 import streamlit as st
 
-# ✅ Fix for Windows async subprocess handling
+# Fix for Windows async subprocess handling
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-st.set_page_config(page_title="IRCTC Auto Login", page_icon="🚆")
-st.title("🚆  Auto Login")
+st.set_page_config(page_title="IRCTC Auto Login")
+st.title("IRCTC Auto Login")
 
 username = st.text_input("Enter IRCTC Username")
 password = st.text_input("Enter IRCTC Password", type="password")
@@ -17,7 +17,7 @@ password = st.text_input("Enter IRCTC Password", type="password")
 
 async def main(username: str, password: str):
     async with async_playwright() as p:
-        # ✅ Always headless on Render
+        # Always headless on Render
         browser = await p.chromium.launch(
             headless=True,
             args=[
@@ -28,7 +28,7 @@ async def main(username: str, password: str):
                 "--disable-extensions",
                 "--disable-gpu",
                 "--disable-software-rasterizer",
-                "--disable-http2",  # ✅ Fix IRCTC HTTP2 issue
+                "--disable-http2",  # Fix IRCTC HTTP2 issue
                 "--ignore-certificate-errors",
                 "--disable-features=IsolateOrigins,site-per-process",
                 "--enable-features=NetworkService,NetworkServiceInProcess",
@@ -38,7 +38,7 @@ async def main(username: str, password: str):
         context = await browser.new_context(no_viewport=True)
         page = await context.new_page()
 
-        st.write("🔹 Opening IRCTC login page...")
+        st.write("Opening IRCTC login page...")
         try:
             await page.goto(
                 "https://www.irctc.co.in/nget/train-search",
@@ -46,7 +46,7 @@ async def main(username: str, password: str):
                 wait_until="domcontentloaded",
             )
         except Exception as e:
-            st.error(f"❌ Failed to load IRCTC: {e}")
+            st.error(f"Failed to load IRCTC: {e}")
             await browser.close()
             return
 
@@ -58,11 +58,11 @@ async def main(username: str, password: str):
             ads = await page.query_selector("//button[@class='btn btn-primary']")
             if ads:
                 await ads.click()
-                st.write("✅ Closed popup")
+                st.write("Closed popup")
                 screenshot = await page.screenshot(full_page=True)
                 st.image(screenshot, caption="Popup Closed", use_container_width=True)
         except Exception:
-            st.write("ℹ️ No popup found")
+            st.write("No popup found")
 
         # Click login button
         try:
@@ -70,7 +70,7 @@ async def main(username: str, password: str):
             screenshot = await page.screenshot(full_page=True)
             st.image(screenshot, caption="Login Page", use_container_width=True)
         except Exception as e:
-            st.error(f"❌ Could not click login button: {e}")
+            st.error(f"Could not click login button: {e}")
             await browser.close()
             return
 
@@ -78,13 +78,13 @@ async def main(username: str, password: str):
         try:
             await page.fill("input[placeholder='User Name']", username)
             await page.fill("input[placeholder='Password']", password)
-            st.success("✅ Credentials entered successfully!")
-            st.info("⚠️ Please enter captcha manually if required...")
+            st.success("Credentials entered successfully.")
+            st.info("Please enter captcha manually if required.")
 
             screenshot = await page.screenshot(full_page=True)
             st.image(screenshot, caption="Credentials Filled", use_container_width=True)
         except Exception as e:
-            st.error(f"❌ Error filling credentials: {e}")
+            st.error(f"Error filling credentials: {e}")
 
         await asyncio.sleep(5)
         await browser.close()
@@ -93,12 +93,12 @@ async def main(username: str, password: str):
 # Button handler
 if st.button("Login to IRCTC"):
     if not username or not password:
-        st.error("❌ Please enter both username and password")
+        st.error("Please enter both username and password")
     else:
         try:
             asyncio.run(main(username, password))
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(f"Error: {e}")
 
 
 
@@ -115,7 +115,7 @@ class Main:
 
 
 def main():
-    bot = Main()       
+    bot = Main()
     bot.def1
     bot.def2
-    bot.f 
+    bot.f

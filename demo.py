@@ -10,7 +10,7 @@ async def run():
 
         await page.goto("https://example.com")
         await page.screenshot(path="screenshot.png")
-        print("✅ Screenshot saved as screenshot.png")
+        print("Screenshot saved as screenshot.png")
 
         await asyncio.sleep(3)
         await browser.close()

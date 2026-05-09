@@ -5,8 +5,8 @@ import time
 import base64
 
 # Streamlit UI
-st.set_page_config(page_title="Selenium Web Screenshot", page_icon="🌐")
-st.title("🌐 Selenium Web Scraper with Streamlit")
+st.set_page_config(page_title="Selenium Web Screenshot")
+st.title("Selenium Web Scraper with Streamlit")
 
 url = st.text_input("Enter a URL", "https://www.irctc.co.in/nget/train-search")
 run_btn = st.button("Fetch Page")
@@ -34,7 +34,7 @@ if run_btn and url:
         time.sleep(3)  # allow page to load
 
         title = driver.title
-        st.success(f"✅ Page Title: {title}")
+        st.success(f"Page Title: {title}")
 
         screenshot_path = "screenshot.png"
         driver.save_screenshot(screenshot_path)
@@ -46,12 +46,12 @@ if run_btn and url:
         # Provide download button
         with open(screenshot_path, "rb") as file:
             btn = st.download_button(
-                label="📥 Download Screenshot",
+                label="Download Screenshot",
                 data=file,
                 file_name="screenshot.png",
                 mime="image/png"
             )
 
     except Exception as e:
-        st.error(f"❌ Error: {e}")
+        st.error(f"Error: {e}")
 

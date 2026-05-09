@@ -6,8 +6,8 @@ import streamlit as st
 if sys.platform.startswith("win"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-st.set_page_config(page_title="URL Title Fetcher", page_icon="🌐")
-st.title("🌐 Get Page Title")
+st.set_page_config(page_title="URL Title Fetcher")
+st.title("Get Page Title")
 
 url = st.text_input("Enter a URL", "https://example.com")
 
@@ -34,7 +34,7 @@ if st.button("Fetch Title"):
     if url:
         try:
             title = asyncio.run(get_title(url))
-            st.success(f"✅ Page title: {title}")
+            st.success(f"Page title: {title}")
         except Exception as e:
             st.error(f"Error fetching title: {e}")
     else:
